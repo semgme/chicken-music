@@ -41,7 +41,7 @@
 </template>
 
 <script>
-import Scroll from '../scroll/scroll.vue'
+import Scroll from '../base/scroll/scroll.vue'
 import useFixed from './use-fixed'
 import useShortcut from './use-shortcut'
 

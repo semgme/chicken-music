@@ -6,7 +6,7 @@
 
 <script>
 import { getSingerList } from '@/service/singer.js'
-import IndexList from '../components/base/index-list/index-list.vue'
+import IndexList from '../components/index-list/index-list.vue'
 
 export default {
   name: 'top-list',
