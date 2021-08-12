@@ -18,7 +18,6 @@ export function useScroll(wrapperRef, options, emit) {
         emit('scroll', pos)
       })
     }
-    console.log(scrollVal)
   })
 
   onUnmounted(() => {

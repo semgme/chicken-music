@@ -4,6 +4,7 @@
  */
 const axios = require('axios')
 const pinyin = require('pinyin')
+const Base64 = require('js-base64').Base64
 // 获取签名方法
 const getSecuritySign = require('./sign')
 
@@ -109,9 +110,22 @@ function registerRouter(app) {
   registerSingerList(app)
 
   registerSingerDetail(app)
+
+  registerSongsUrl(app)
+
+  registerLyric(app)
+
+  registerAlbum(app)
+
+  registerTopList(app)
+
+  registerTopDetail(app)
+
+  registerHotKeys(app)
+
+  registerSearch(app)
 }
 
-// 注册推荐列表接口路由
 function registerRecommend(app) {
   app.get('/api/getRecommend', (req, res) => {
     // 第三方服务接口 url
@@ -333,6 +347,366 @@ function registerSingerDetail(app) {
       } else {
         res.json(data)
       }
+    })
+  })
+}
+
+function registerSongsUrl(app) {
+  app.get('/api/getSongsUrl', (req, res) => {
+    const mid = req.query.mid
+
+    let midGroup = []
+    // 第三方接口只支持最多处理 100 条数据，所以如果超过 100 条数据，我们要把数据按每组 100 条切割，发送多个请求
+    if (mid.length > 100) {
+      const groupLen = Math.ceil(mid.length / 100)
+      for (let i = 0; i < groupLen; i++) {
+        midGroup.push(mid.slice(i * 100, (100 * (i + 1))))
+      }
+    } else {
+      midGroup = [mid]
+    }
+
+    // 以歌曲的 mid 为 key，存储歌曲 URL
+    const urlMap = {}
+
+    // 处理返回的 mid
+    function process(mid) {
+      const data = {
+        req_0: {
+          module: 'vkey.GetVkeyServer',
+          method: 'CgiGetVkey',
+          param: {
+            guid: getUid(),
+            songmid: mid,
+            songtype: new Array(mid.length).fill(0),
+            uin: '0',
+            loginflag: 0,
+            platform: '23',
+            h5to: 'speed'
+          }
+        },
+        comm: {
+          g_tk: token,
+          uin: '0',
+          format: 'json',
+          platform: 'h5'
+        }
+      }
+
+      const sign = getSecuritySign(JSON.stringify(data))
+      const url = `https://u.y.qq.com/cgi-bin/musics.fcg?_=${getRandomVal()}&sign=${sign}`
+
+      // 发送 post 请求
+      return post(url, data).then((response) => {
+        const data = response.data
+        if (data.code === ERR_OK) {
+          const midInfo = data.req_0.data.midurlinfo
+          const sip = data.req_0.data.sip
+          const domain = sip[sip.length - 1]
+          midInfo.forEach((info) => {
+            // 获取歌曲的真实播放 URL
+            urlMap[info.songmid] = domain + info.purl
+          })
+        }
+      })
+    }
+
+    // 构造多个 Promise 请求
+    const requests = midGroup.map((mid) => {
+      return process(mid)
+    })
+
+    // 并行发送多个请求
+    return Promise.all(requests).then(() => {
+      // 所有请求响应完毕，urlMap 也就构造完毕了
+      res.json({
+        code: ERR_OK,
+        result: {
+          map: urlMap
+        }
+      })
+    })
+  })
+}
+
+function registerLyric(app) {
+  app.get('/api/getLyric', (req, res) => {
+    const url = 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg'
+
+    get(url, {
+      '-': 'MusicJsonCallback_lrc',
+      pcachetime: +new Date(),
+      songmid: req.query.mid,
+      g_tk_new_20200303: token
+    }).then((response) => {
+      const data = response.data
+      if (data.code === ERR_OK) {
+        res.json({
+          code: ERR_OK,
+          result: {
+            lyric: Base64.decode(data.lyric)
+          }
+        })
+      } else {
+        res.json(data)
+      }
+    })
+  })
+}
+
+function registerAlbum(app) {
+  app.get('/api/getAlbum', (req, res) => {
+    const data = {
+      req_0: {
+        module: 'srf_diss_info.DissInfoServer',
+        method: 'CgiGetDiss',
+        param: {
+          disstid: Number(req.query.id),
+          onlysonglist: 1,
+          song_begin: 0,
+          song_num: 100
+        }
+      },
+      comm: {
+        g_tk: token,
+        uin: '0',
+        format: 'json',
+        platform: 'h5'
+      }
+    }
+
+    const sign = getSecuritySign(JSON.stringify(data))
+
+    const url = `https://u.y.qq.com/cgi-bin/musics.fcg?_=${getRandomVal()}&sign=${sign}`
+
+    post(url, data).then((response) => {
+      const data = response.data
+      if (data.code === ERR_OK) {
+        const list = data.req_0.data.songlist
+        const songList = handleSongList(list)
+
+        res.json({
+          code: ERR_OK,
+          result: {
+            songs: songList
+          }
+        })
+      } else {
+        res.json(data)
+      }
+    })
+  })
+}
+
+function registerTopList(app) {
+  app.get('/api/getTopList', (req, res) => {
+    const url = 'https://u.y.qq.com/cgi-bin/musics.fcg'
+
+    const data = JSON.stringify({
+      comm: { ct: 24 },
+      toplist: { module: 'musicToplist.ToplistInfoServer', method: 'GetAll', param: {} }
+    })
+
+    const randomKey = getRandomVal('recom')
+    const sign = getSecuritySign(data)
+
+    get(url, {
+      sign,
+      '-': randomKey,
+      data
+    }).then((response) => {
+      const data = response.data
+      if (data.code === ERR_OK) {
+        const topList = []
+        const group = data.toplist.data.group
+
+        group.forEach((item) => {
+          item.toplist.forEach((listItem) => {
+            topList.push({
+              id: listItem.topId,
+              pic: listItem.frontPicUrl,
+              name: listItem.title,
+              period: listItem.period,
+              songList: listItem.song.map((songItem) => {
+                return {
+                  id: songItem.songId,
+                  singerName: songItem.singerName,
+                  songName: songItem.title
+                }
+              })
+            })
+          })
+        })
+
+        res.json({
+          code: ERR_OK,
+          result: {
+            topList
+          }
+        })
+      } else {
+        res.json(data)
+      }
+    })
+  })
+}
+
+function registerTopDetail(app) {
+  app.get('/api/getTopDetail', (req, res) => {
+    const url = 'https://u.y.qq.com/cgi-bin/musics.fcg'
+    const { id, period } = req.query
+
+    const data = JSON.stringify({
+      detail: {
+        module: 'musicToplist.ToplistInfoServer',
+        method: 'GetDetail',
+        param: {
+          topId: Number(id),
+          offset: 0,
+          num: 100,
+          period
+        }
+      },
+      comm: {
+        ct: 24,
+        cv: 0
+      }
+    })
+
+    const randomKey = getRandomVal('getUCGI')
+    const sign = getSecuritySign(data)
+
+    get(url, {
+      sign,
+      '-': randomKey,
+      data
+    }).then((response) => {
+      const data = response.data
+      if (data.code === ERR_OK) {
+        const list = data.detail.data.songInfoList
+        const songList = handleSongList(list)
+
+        res.json({
+          code: ERR_OK,
+          result: {
+            songs: songList
+          }
+        })
+      } else {
+        res.json(data)
+      }
+    })
+  })
+}
+
+function registerHotKeys(app) {
+  app.get('/api/getHotKeys', (req, res) => {
+    const url = 'https://c.y.qq.com/splcloud/fcgi-bin/gethotkey.fcg'
+
+    get(url, {
+      g_tk_new_20200303: token
+    }).then((response) => {
+      const data = response.data
+      if (data.code === ERR_OK) {
+        res.json({
+          code: ERR_OK,
+          result: {
+            hotKeys: data.data.hotkey.map((key) => {
+              return {
+                key: key.k,
+                id: key.n
+              }
+            }).slice(0, 10)
+          }
+        })
+      } else {
+        res.json(data)
+      }
+    })
+  })
+}
+
+function registerSearch(app) {
+  app.get('/api/search', (req, res) => {
+    const url = 'https://shc.y.qq.com/soso/fcgi-bin/search_for_qq_cp'
+
+    const { query, page, showSinger } = req.query
+
+    const data = {
+      _: getRandomVal(),
+      g_tk_new_20200303: token,
+      w: query,
+      p: page,
+      perpage: 20,
+      n: 20,
+      zhidaqu: 1,
+      catZhida: showSinger === 'true' ? 1 : 0,
+      t: 0,
+      flag: 1,
+      ie: 'utf-8',
+      sem: 1,
+      aggr: 0,
+      remoteplace: 'txt.mqq.all',
+      uin: '0',
+      needNewCode: 1,
+      platform: 'h5',
+      format: 'json'
+    }
+
+    get(url, data).then((response) => {
+      const data = response.data
+      if (data.code === ERR_OK) {
+        const songList = []
+        const songData = data.data.song
+        const list = songData.list
+
+        list.forEach((item) => {
+          const info = item
+          if (info.pay.payplay !== 0 || !info.interval) {
+            // 过滤付费歌曲
+            return
+          }
+
+          const song = {
+            id: info.songid,
+            mid: info.songmid,
+            name: info.songname,
+            singer: mergeSinger(info.singer),
+            url: '',
+            duration: info.interval,
+            pic: info.albummid ? `https://y.gtimg.cn/music/photo_new/T002R800x800M000${info.albummid}.jpg?max_age=2592000` : fallbackPicUrl,
+            album: info.albumname
+          }
+          songList.push(song)
+        })
+
+        let singer
+        const zhida = data.data.zhida
+        if (zhida && zhida.type === 2) {
+          singer = {
+            id: zhida.singerid,
+            mid: zhida.singermid,
+            name: zhida.singername,
+            pic: `https://y.gtimg.cn/music/photo_new/T001R800x800M000${zhida.singermid}.jpg?max_age=2592000`
+          }
+        }
+
+        const { curnum, curpage, totalnum } = songData
+        const hasMore = 20 * (curpage - 1) + curnum < totalnum
+
+        res.json({
+          code: ERR_OK,
+          result: {
+            songs: songList,
+            singer,
+            hasMore
+          }
+        })
+      } else {
+        res.json(data)
+      }
+    }).catch((e) => {
+      res.status(500).send()
     })
   })
 }

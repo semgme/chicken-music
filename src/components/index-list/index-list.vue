@@ -1,5 +1,5 @@
 <template>
-  <scroll class="index-list" :probeType="3" @scroll="onScroll" ref="scrollRef">
+  <scroll class="index-list" :probeType="3" :click="true" @scroll="onScroll" ref="scrollRef">
     <ul ref="groupRef">
       <li
         v-for="group in data"
@@ -12,6 +12,7 @@
             v-for="item in group.list"
             :key="item.id"
             class="item"
+            @click="onItemClick(item)"
           >
             <img class="avatar" v-lazy="item.pic">
             <span class="name">{{item.name}}</span>
@@ -56,9 +57,18 @@ export default {
       }
     }
   },
-  setup(props) {
+  emits: ['select'],
+  setup(props, { emit }) {
     const { groupRef, fixedTitle, fixedStyle, onScroll, currentIndex } = useFixed(props)
     const { shortcutList, onShortcutTouchStart, onShortcutTouchMove, scrollRef } = useShortcut(props, groupRef)
+
+    function onItemClick(item) {
+      emit('select', item)
+    }
+
+    function handle() {
+      console.log(123)
+    }
 
     return {
       groupRef,
@@ -69,7 +79,9 @@ export default {
       shortcutList,
       onShortcutTouchStart,
       onShortcutTouchMove,
-      scrollRef
+      scrollRef,
+      onItemClick,
+      handle
     }
   }
 }

@@ -4,6 +4,9 @@ import Recommend from '../views/recommend.vue'
 import Search from '../views/search.vue'
 import Singer from '../views/singer.vue'
 import TopList from '../views/top-list.vue'
+import SingerDetail from '../views/singer-detail.vue'
+import album from '../views/album.vue'
+import topDetail from '../views/top-detail.vue'
 
 const routes = [
   {
@@ -12,19 +15,43 @@ const routes = [
   },
   {
     path: '/recommend',
-    component: Recommend
+    component: Recommend,
+    children: [
+      {
+        path: ':id',
+        component: album
+      }
+    ]
   },
   {
     path: '/search',
-    component: Search
+    component: Search,
+    children: [
+      {
+        path: ':id',
+        component: SingerDetail
+      }
+    ]
   },
   {
     path: '/singer',
-    component: Singer
+    component: Singer,
+    children: [
+      {
+        path: ':id',
+        component: SingerDetail
+      }
+    ]
   },
   {
     path: '/top-list',
-    component: TopList
+    component: TopList,
+    children: [
+      {
+        path: ':id',
+        component: topDetail
+      }
+    ]
   },
   {
     path: '/user',
@@ -33,7 +60,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHashHistory(process.env.BASE_URL),
   routes
 })
 
