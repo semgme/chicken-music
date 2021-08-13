@@ -87,6 +87,7 @@ import useCd from './use-cd'
 import useLyric from './use-lyric'
 import useMiddleInteractive from './use-middle-interactive'
 import useAnimation from './use-animation'
+import usePlayHistory from './use-play-history'
 
 export default {
   name: 'player',
@@ -115,6 +116,7 @@ export default {
     const { currentLyric, currentLineNum, pureMusicLyric, playingLyric, lyricScrollRef, lyricListRef, playLyric, stopLyric } = useLyric(songReady, currentTime)
     const { currentShow, middleLStyle, middleRStyle, onMiddleTouchStart, onMiddleTouchMove, onMiddleTouchEnd } = useMiddleInteractive()
     const { cdWrapperRef, enter, afterEnter, leave, afterLeave } = useAnimation()
+    const { savePlay } = usePlayHistory()
 
     // computed
     const playIcon = computed(() => {
@@ -217,6 +219,7 @@ export default {
     function ready() {
       songReady.value = true
       playLyric()
+      savePlay(currentSong.value)
     }
     function error() {
       songReady.value = true

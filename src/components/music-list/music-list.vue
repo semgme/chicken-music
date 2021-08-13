@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import Scroll from '@/components/base/scroll/scroll.vue'
+import Scroll from '../wrap-scroll/index'
 import SongList from '@/components/base/song-list/song-list'
 import { mapState, mapActions } from 'vuex'
 
@@ -114,7 +114,7 @@ export default {
     onScroll(pos) {
       this.scrollY = -pos.y
     },
-    selectItem(index) {
+    selectItem({ song, index }) {
       this.selectPlay({
         list: this.songs,
         index

@@ -3,6 +3,8 @@ import storage from 'good-storage'
 function insertArray(arr, val, compare, maxLen) {
   const index = arr.findIndex(compare)
   if (index !== -1) {
+    arr.splice(index, 1)
+    arr.unshift(val)
     return
   }
   arr.unshift(val)
@@ -32,6 +34,15 @@ export function remove(key, compare) {
   return items
 }
 
+export function clear(key) {
+  storage.remove(key)
+  return []
+}
+
 export function load(key) {
   return storage.get(key, [])
+}
+
+export function saveAll(items, key) {
+  storage.set(key, items)
 }

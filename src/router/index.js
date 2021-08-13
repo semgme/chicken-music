@@ -1,12 +1,22 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import UserCenter from '../views/user-center.vue'
-import Recommend from '../views/recommend.vue'
-import Search from '../views/search.vue'
-import Singer from '../views/singer.vue'
-import TopList from '../views/top-list.vue'
-import SingerDetail from '../views/singer-detail.vue'
-import album from '../views/album.vue'
-import topDetail from '../views/top-detail.vue'
+
+// import UserCenter from '../views/user-center.vue'
+// import Recommend from '../views/recommend.vue'
+// import Search from '../views/search.vue'
+// import Singer from '../views/singer.vue'
+// import TopList from '../views/top-list.vue'
+// import SingerDetail from '../views/singer-detail.vue'
+// import album from '../views/album.vue'
+// import topDetail from '../views/top-detail.vue'
+
+const Recommend = () => import('@/views/recommend'/* webpackChunkName: "recommend" */)
+const Singer = () => import('@/views/singer'/* webpackChunkName: "singer" */)
+const TopList = () => import('@/views/top-list'/* webpackChunkName: "top-list" */)
+const Search = () => import('@/views/search'/* webpackChunkName: "search" */)
+const SingerDetail = () => import('@/views/singer-detail'/* webpackChunkName: "singer-detail" */)
+const Album = () => import('@/views/album'/* webpackChunkName: "album" */)
+const TopDetail = () => import('@/views/top-detail'/* webpackChunkName: "top-detail" */)
+const UserCenter = () => import('@/views/user-center'/* webpackChunkName: "user-center" */)
 
 const routes = [
   {
@@ -19,7 +29,7 @@ const routes = [
     children: [
       {
         path: ':id',
-        component: album
+        component: Album
       }
     ]
   },
@@ -49,13 +59,15 @@ const routes = [
     children: [
       {
         path: ':id',
-        component: topDetail
+        component: TopDetail
       }
     ]
   },
   {
     path: '/user',
-    component: UserCenter
+    components: {
+      user: UserCenter
+    }
   }
 ]
 

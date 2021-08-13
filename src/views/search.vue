@@ -16,10 +16,11 @@
       <div class="search-history" v-show="searchHistory.length">
           <h1 class="title">
             <span class="text">搜索历史</span>
-            <span class="clear">
+            <span class="clear" @click="showConfirm">
               <i class="icon-clear"></i>
             </span>
           </h1>
+          <confirm ref="confirmRef" text="是否清空所有搜索历史" confirm-btn-text="清空" @confirm="clearSearch"></confirm>
           <search-list :searches="searchHistory" @select="addQuery" @delete="deleteSearch"></search-list>
         </div>
       </div>
@@ -39,10 +40,11 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import Scroll from '../components/base/scroll/scroll.vue'
 import searchInput from '../components/search/search-input.vue'
 import Suggest from '@/components/search/suggest'
 import SearchList from '@/components/base/search-list/search-list'
-import Scroll from '../components/base/scroll/scroll.vue'
+import Confirm from '@/components/base/confirm/confirm'
 import { getHotKeys } from '@/service/search'
 import storage from 'good-storage'
 import { SINGER_KEY } from '@/assets/js/constant'
@@ -50,9 +52,10 @@ import useSearchHistory from '@/components/search/use-search-history'
 
 export default {
   name: 'search',
-  components: { searchInput, Suggest, SearchList, Scroll },
+  components: { searchInput, Suggest, SearchList, Scroll, Confirm },
   setup() {
     const scrollRef = ref(null)
+    const confirmRef = ref(null)
     const query = ref('')
     const hotKeys = ref([])
     const selectedSinger = ref(null)
@@ -62,7 +65,7 @@ export default {
 
     const router = useRouter()
 
-    const { saveSearch, deleteSearch } = useSearchHistory()
+    const { saveSearch, deleteSearch, clearSearch } = useSearchHistory()
 
     getHotKeys().then((result) => {
       hotKeys.value = result.hotKeys
@@ -103,8 +106,13 @@ export default {
       storage.session.set(SINGER_KEY, singer)
     }
 
+    function showConfirm() {
+      confirmRef.value.show()
+    }
+
     return {
       scrollRef,
+      confirmRef,
       query,
       hotKeys,
       addQuery,
@@ -112,7 +120,9 @@ export default {
       selectSong,
       selectSinger,
       selectedSinger,
-      deleteSearch
+      deleteSearch,
+      clearSearch,
+      showConfirm
     }
   }
 }
