@@ -4,7 +4,7 @@ import axiosRetry from 'axios-retry'
 axiosRetry(axios, { retries: 5 })
 
 const ERR_OK = 0
-const baseURL = process.env.NODE_ENV === 'production' ? '120.24.74.136' : '/'
+const baseURL = process.env.NODE_ENV === 'production' ? '120.24.74.136:9000' : '/'
 
 axios.defaults.baseURL = baseURL
 
